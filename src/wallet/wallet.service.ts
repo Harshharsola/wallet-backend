@@ -1,11 +1,12 @@
 import { Injectable } from '@nestjs/common';
-import { SetupWalletDto } from './dtos';
+import { SetupWalletDto, TransactionDto } from './dtos';
 import { InjectModel } from '@nestjs/mongoose';
 import { Wallet } from 'src/schemas/wallet.schema';
 import { Model } from 'mongoose';
 import { getApiResponse } from 'src/utils';
 import { Transaction } from 'src/schemas/transaction.schema';
 import { transactionType } from 'src/constants';
+import { Types } from 'mongoose';
 
 @Injectable()
 export class WalletService {
@@ -75,5 +76,61 @@ export class WalletService {
     } catch (error) {
       console.log(error);
     }
+  }
+
+  async transaction(walletId: string, transactionDto: TransactionDto) {
+    const currentTime = new Date();
+
+    const wallet_Id = new Types.ObjectId(walletId);
+
+    try {
+      const wallet = await this.walletModel.findById(wallet_Id);
+      if (wallet === null) {
+        return getApiResponse({}, '404', 'wallet not found');
+      }
+      const newBalance = wallet.balance + transactionDto.amount;
+      if (newBalance < 0) {
+        return getApiResponse({}, '400', 'insufficient funds');
+      }
+
+      const newTransaction = await this.createTransation({
+        balance: newBalance,
+        walletId: wallet_Id,
+        amount: transactionDto.amount,
+        description: transactionDto.description,
+        date: currentTime,
+      });
+
+      await this.walletModel.updateOne(
+        { _id: wallet._id },
+        { balance: newBalance },
+      );
+      return getApiResponse(
+        { balance: newBalance, transactionId: newTransaction._id },
+        '200',
+        'transaction successful',
+      );
+    } catch (error) {
+      console.log(error);
+    }
+  }
+
+  async fetchTransaction(walletId: string, skip: number, limit: number) {
+    const objectId = new Types.ObjectId(walletId);
+
+    // Find the wallet to ensure it exists
+    const wallet = await this.walletModel.findById(objectId);
+    if (!wallet) {
+      return getApiResponse({}, '404', 'wallet not found');
+    }
+
+    // Fetch transactions with pagination
+    const transactions = await this.transactionModel
+      .find({ walletId: objectId })
+      .skip(skip)
+      .limit(limit)
+      .sort({ date: -1 });
+
+    return transactions;
   }
 }

@@ -1,6 +1,6 @@
-import { Body, Controller, Post, Res } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Query, Res } from '@nestjs/common';
 import { WalletService } from './wallet.service';
-import { SetupWalletDto } from './dtos';
+import { SetupWalletDto, TransactionDto } from './dtos';
 
 @Controller('wallet')
 export class WalletController {
@@ -8,6 +8,34 @@ export class WalletController {
   @Post('setup')
   async setupWallet(@Body() setupWalletDto: SetupWalletDto, @Res() res) {
     const response = await this.walletService.create(setupWalletDto);
+    res.send(response);
+  }
+
+  @Post('transact/:walletId')
+  async performTransaction(
+    @Param() walletId,
+    @Body() transactionDto: TransactionDto,
+    @Res() res,
+  ) {
+    const response = await this.walletService.transaction(
+      walletId.walletId,
+      transactionDto,
+    );
+    res.send(response);
+  }
+
+  @Get('transactions')
+  async fetchTransaction(
+    @Query('walletId') walletId: string,
+    @Query('skip') skip: number,
+    @Query('limit') limit: number,
+    @Res() res,
+  ) {
+    const response = await this.walletService.fetchTransaction(
+      walletId,
+      skip,
+      limit,
+    );
     res.send(response);
   }
 }
