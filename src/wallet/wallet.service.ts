@@ -131,6 +131,26 @@ export class WalletService {
       .limit(limit)
       .sort({ date: -1 });
 
-    return transactions;
+    return getApiResponse(transactions, '200', 'get transactions successfull');
+  }
+
+  async fetchWallet(walletId: string) {
+    const objectId = new Types.ObjectId(walletId);
+
+    const wallet = await this.walletModel.findById(objectId);
+    if (!wallet) {
+      return getApiResponse({}, '404', 'wallet not found');
+    } else {
+      return getApiResponse(
+        {
+          id: wallet._id,
+          balance: wallet.balance,
+          name: wallet.name,
+          date: wallet.date,
+        },
+        '200',
+        'get wallet successfull',
+      );
+    }
   }
 }

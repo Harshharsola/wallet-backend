@@ -38,4 +38,10 @@ export class WalletController {
     );
     res.send(response);
   }
+
+  @Get('/:walletId')
+  async fetchWallet(@Param('walletId') walletId: string, @Res() res) {
+    const response = await this.walletService.fetchWallet(walletId);
+    res.send(response);
+  }
 }
