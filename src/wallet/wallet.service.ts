@@ -88,7 +88,7 @@ export class WalletService {
       if (wallet === null) {
         return getApiResponse({}, '404', 'wallet not found');
       }
-      const newBalance = wallet.balance + transactionDto.amount;
+      const newBalance = wallet.balance + +transactionDto.amount;
       if (newBalance < 0) {
         return getApiResponse({}, '400', 'insufficient funds');
       }
@@ -123,7 +123,9 @@ export class WalletService {
     if (!wallet) {
       return getApiResponse({}, '404', 'wallet not found');
     }
-
+    const transactionsCount = await this.transactionModel.countDocuments({
+      walletId: objectId,
+    });
     // Fetch transactions with pagination
     const transactions = await this.transactionModel
       .find({ walletId: objectId })
@@ -131,7 +133,11 @@ export class WalletService {
       .limit(limit)
       .sort({ date: -1 });
 
-    return getApiResponse(transactions, '200', 'get transactions successfull');
+    return getApiResponse(
+      { transactions, transactionsCount },
+      '200',
+      'get transactions successfull',
+    );
   }
 
   async fetchWallet(walletId: string) {
