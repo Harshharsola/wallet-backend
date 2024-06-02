@@ -7,6 +7,9 @@ import { getApiResponse } from 'src/utils';
 import { Transaction } from 'src/schemas/transaction.schema';
 import { transactionType } from 'src/constants';
 import { Types } from 'mongoose';
+import * as fs from 'fs';
+import * as path from 'path';
+import * as fastCsv from 'fast-csv';
 
 @Injectable()
 export class WalletService {
@@ -118,7 +121,6 @@ export class WalletService {
   async fetchTransaction(walletId: string, skip: number, limit: number) {
     const objectId = new Types.ObjectId(walletId);
 
-    // Find the wallet to ensure it exists
     const wallet = await this.walletModel.findById(objectId);
     if (!wallet) {
       return getApiResponse({}, '404', 'wallet not found');
@@ -126,7 +128,7 @@ export class WalletService {
     const transactionsCount = await this.transactionModel.countDocuments({
       walletId: objectId,
     });
-    // Fetch transactions with pagination
+
     const transactions = await this.transactionModel
       .find({ walletId: objectId })
       .skip(skip)
@@ -158,5 +160,50 @@ export class WalletService {
         'get wallet successfull',
       );
     }
+  }
+
+  async transactionCsv(walletId: string): Promise<string> {
+    const objectId = new Types.ObjectId(walletId);
+
+    const wallet = await this.walletModel.findById(objectId);
+    if (!wallet) {
+      return '404: Wallet not found';
+    }
+
+    const transactions = await this.transactionModel
+      .find({ walletId: objectId })
+      .lean();
+    const tmpDir = path.join(__dirname, '..', '..', 'tmp');
+    if (!fs.existsSync(tmpDir)) {
+      fs.mkdirSync(tmpDir, { recursive: true });
+    }
+
+    const csvFilePath = path.join(tmpDir, `transactions_${Date.now()}.csv`);
+    const csvStream = fastCsv.format({ headers: true });
+    const writableStream = fs.createWriteStream(csvFilePath);
+
+    return new Promise((resolve, reject) => {
+      writableStream.on('finish', () => {
+        resolve(csvFilePath);
+      });
+
+      csvStream.on('error', (error) => {
+        reject(error);
+      });
+
+      csvStream.pipe(writableStream);
+      transactions.forEach((transaction) => {
+        csvStream.write({
+          id: transaction._id,
+          walletId: transaction.walletId,
+          amount: transaction.amount,
+          balance: transaction.balance,
+          description: transaction.description,
+          date: transaction.date,
+          type: transaction.type,
+        });
+      });
+      csvStream.end();
+    });
   }
 }
