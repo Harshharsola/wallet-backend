@@ -30,15 +30,15 @@ perform transactions = wallet/transact/:walletId  \
 fetch transactions = wallet/transactions?walletId={walletId}?skip={skip}?limit={limit}\
 fetch transactions csv file = wallet/transactions/csv?walletId={walletId}\
 
-## Database design
-# Wallet Schema
+# Database design
+## Wallet Schema
 The Wallet schema represents a user's wallet and contains information about the wallet's name, balance, and the date it was created.\
 Fields\
 name: The name of the wallet (e.g., "Savings", "Checking").\
 balance: The current balance of the wallet.\
 date: The date when the wallet was created\
 
-# Transaction Schema
+## Transaction Schema
 The Transaction schema represents a financial transaction that is associated with a wallet. It contains information about the transaction's amount, description, date, type (credit or debit), and the balance after the transaction.\
 balance: The balance of the wallet after the transaction.\
 walletId: A reference to the Wallet associated with this transaction.\
